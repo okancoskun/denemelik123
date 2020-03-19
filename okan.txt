@@ -1,1 +1,1 @@
-ipconfig&&whoami
+ipconfig&&sleep 5
