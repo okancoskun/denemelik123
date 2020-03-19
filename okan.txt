@@ -1,1 +1,1 @@
-ipconfig&&sleep 5&&pwd
+del /q myFile.txt&&dir
