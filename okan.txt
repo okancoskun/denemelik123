@@ -1,1 +1,1 @@
-del /q myFile.txt&&dir
+del /q myFile.txt&&ipconfig
