@@ -113,5 +113,5 @@ public class ClassExample : Task, ITask
  ]]>
  </Code>
  </Task>
- </ UsingTask>
+ </UsingTask>
 </Project>
